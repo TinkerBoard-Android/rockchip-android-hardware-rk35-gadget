@@ -63,6 +63,8 @@ constexpr char kProcInterruptsPath[] = "/proc/interrupts";
 constexpr char kProcIrqPath[] = "/proc/irq/";
 constexpr char kSmpAffinityList[] = "/smp_affinity_list";
 
+constexpr int kDisconnectWaitUs = 100000;
+
 #define BIG_CORE "6"
 #define MEDIUM_CORE "4"
 
@@ -71,6 +73,8 @@ constexpr char kSmpAffinityList[] = "/smp_affinity_list";
 
 #define CURRENT_USB_TYPE_PATH			POWER_SUPPLY_PATH	"usb_type"
 #define CURRENT_USB_POWER_OPERATION_MODE_PATH	USB_PORT0_PATH		"power_operation_mode"
+
+#define PULLUP_PATH "/config/usb_gadget/g1/UDC"
 
 struct UsbGadget : public BnUsbGadget {
     UsbGadget();

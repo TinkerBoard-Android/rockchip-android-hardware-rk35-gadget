@@ -153,6 +153,22 @@ Status UsbGadget::tearDownGadget() {
 
 ScopedAStatus UsbGadget::reset(const shared_ptr<IUsbGadgetCallback> &callback,
         int64_t in_transactionId) {
+    ALOGI("USB Gadget reset");
+    if (!WriteStringToFile("none", PULLUP_PATH)) {
+        ALOGI("Gadget cannot be pulled down");
+        return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+
+    usleep(kDisconnectWaitUs);
+
+    if (mUdcController.empty()) {
+        mUdcController = GetProperty(kGadgetNameProp, "fc400000.usb");
+    }
+    if (!WriteStringToFile(mUdcController, PULLUP_PATH)) {
+        ALOGI("Gadget cannot be pulled up");
+        return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+
     if (callback)
         callback->resetCb(Status::SUCCESS, in_transactionId);
     return ScopedAStatus::ok();
