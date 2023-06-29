@@ -28,6 +28,8 @@
 
 #include <aidl/android/frameworks/stats/IStats.h>
 
+using android::base::GetProperty;
+
 namespace aidl {
 namespace android {
 namespace hardware {
@@ -40,7 +42,7 @@ constexpr char kI2CPath[] = "/sys/devices/platform/10d50000.hsi2c/i2c-";
 constexpr char kAccessoryLimitCurrent[] = "i2c-max77759tcpc/usb_limit_accessory_current";
 constexpr char kAccessoryLimitCurrentEnable[] = "i2c-max77759tcpc/usb_limit_accessory_enable";
 
-UsbGadget::UsbGadget() : mGadgetIrqPath("") {
+UsbGadget::UsbGadget() : mGadgetIrqPath(""), mUdcController("") {
 }
 
 Status UsbGadget::getUsbGadgetIrqPath() {
@@ -107,8 +109,13 @@ ScopedAStatus UsbGadget::getCurrentUsbFunctions(const shared_ptr<IUsbGadgetCallb
 
 ScopedAStatus UsbGadget::getUsbSpeed(const shared_ptr<IUsbGadgetCallback> &callback,
 	int64_t in_transactionId) {
+    std::string speed_path;
     std::string current_speed;
-    if (ReadFileToString(SPEED_PATH, &current_speed)) {
+    if (mUdcController.empty()) {
+        mUdcController = GetProperty(kGadgetNameProp, "fc400000.usb");
+    }
+    speed_path = "/sys/class/udc/" + mUdcController + "/current_speed";
+    if (ReadFileToString(speed_path, &current_speed)) {
         current_speed = Trim(current_speed);
         ALOGI("current USB speed is %s", current_speed.c_str());
         if (current_speed == "low-speed")

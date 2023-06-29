@@ -58,16 +58,10 @@ using ::ndk::ScopedAStatus;
 using ::std::shared_ptr;
 using ::std::string;
 
-constexpr char kGadgetName[] = "11110000.dwc3";
+constexpr char kGadgetNameProp[] = "vendor.usb.controller";
 constexpr char kProcInterruptsPath[] = "/proc/interrupts";
 constexpr char kProcIrqPath[] = "/proc/irq/";
 constexpr char kSmpAffinityList[] = "/smp_affinity_list";
-#ifndef UDC_PATH
-#define UDC_PATH "/sys/class/udc/11110000.dwc3/"
-#endif
-//static MonitorFfs monitorFfs(kGadgetName);
-
-#define SPEED_PATH UDC_PATH "current_speed"
 
 #define BIG_CORE "6"
 #define MEDIUM_CORE "4"
@@ -85,6 +79,7 @@ struct UsbGadget : public BnUsbGadget {
     // Makes sure that only one request is processed at a time.
     std::mutex mLockSetCurrentFunction;
     std::string mGadgetIrqPath;
+    std::string mUdcController;
     long mCurrentUsbFunctions;
     bool mCurrentUsbFunctionsApplied;
     UsbSpeed mUsbSpeed;
