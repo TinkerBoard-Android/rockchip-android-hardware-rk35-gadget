@@ -256,17 +256,25 @@ ScopedAStatus UsbGadget::setCurrentUsbFunctions(int64_t functions,
         goto error;
     }
 
+#if 0
+    /**
+     * Check if we really need to bind irq to big core or medium core.
+     * Different platforms need to be checked.
+     */
     if (functions & GadgetFunction::NCM) {
         if (!mGadgetIrqPath.empty()) {
-            if (!WriteStringToFile(BIG_CORE, mGadgetIrqPath))
-                ALOGI("Cannot move gadget IRQ to big core, path:%s", mGadgetIrqPath.c_str());
+            if (!WriteStringToFile(BIG_CORE, mGadgetIrqPath)) {
+                ALOGW("Cannot move gadget IRQ to big core, path:%s", mGadgetIrqPath.c_str());
+            }
         }
     } else {
         if (!mGadgetIrqPath.empty()) {
-            if (!WriteStringToFile(MEDIUM_CORE, mGadgetIrqPath))
-                ALOGI("Cannot move gadget IRQ to medium core, path:%s", mGadgetIrqPath.c_str());
+            /*if (!WriteStringToFile(MEDIUM_CORE, mGadgetIrqPath))
+                ALOGW("Cannot move gadget IRQ to medium core, path:%s", mGadgetIrqPath.c_str());
+                */
         }
     }
+#endif
 
     if (ReadFileToString(CURRENT_USB_TYPE_PATH, &current_usb_type))
         current_usb_type = Trim(current_usb_type);
