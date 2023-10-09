@@ -180,7 +180,7 @@ void *MonitorFfs::startMonitorFd(void *param) {
                 int numRead = read(monitorFfs->mInotifyFd, buf, kBufferSize);
                 for (char *p = buf; p < buf + numRead;) {
                     struct inotify_event *event = (struct inotify_event *)p;
-                    if (kDebug) {
+                    if (isDebug()) {
                         displayInotifyEvent(event);
                     }
 
@@ -189,7 +189,7 @@ void *MonitorFfs::startMonitorFd(void *param) {
                     bool descriptorPresent = true;
                     for (int j = 0; j < static_cast<int>(monitorFfs->mEndpointList.size()); j++) {
                         if (access(monitorFfs->mEndpointList.at(j).c_str(), R_OK)) {
-                            if (kDebug) {
+                            if (isDebug()) {
                                 ALOGI("%s absent", monitorFfs->mEndpointList.at(j).c_str());
                             }
                             descriptorPresent = false;
@@ -198,7 +198,7 @@ void *MonitorFfs::startMonitorFd(void *param) {
                     }
 
                     if (!descriptorPresent && !writeUdc) {
-                        if (kDebug) {
+                        if (isDebug()) {
                             ALOGI("endpoints not up");
                         }
                         writeUdc = true;

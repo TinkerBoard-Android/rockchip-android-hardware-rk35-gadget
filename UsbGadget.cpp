@@ -29,6 +29,10 @@
 
 #include <aidl/android/frameworks/stats/IStats.h>
 
+#include <android-base/stringprintf.h>
+
+#define PW_LOG_DEBUG(...) if (isDebug()) ALOGD(__VA_ARGS__)
+
 using android::base::GetProperty;
 
 namespace aidl {
@@ -120,7 +124,7 @@ ScopedAStatus UsbGadget::getUsbSpeed(const shared_ptr<IUsbGadgetCallback> &callb
 
     if (ReadFileToString(speed_path, &current_speed)) {
         current_speed = Trim(current_speed);
-        ALOGI("current USB speed is %s", current_speed.c_str());
+        PW_LOG_DEBUG("current USB speed is %s", current_speed.c_str());
         if (current_speed == "low-speed")
             mUsbSpeed = UsbSpeed::LOWSPEED;
         else if (current_speed == "full-speed")
@@ -232,7 +236,7 @@ Status validateAndSetVidPid(uint64_t functions) {
 
 ScopedAStatus UsbGadget::reset(const shared_ptr<IUsbGadgetCallback> &callback,
         int64_t in_transactionId) {
-    ALOGI("USB Gadget reset");
+    PW_LOG_DEBUG("USB Gadget reset");
     if (!WriteStringToFile("none", PULLUP_PATH)) {
         ALOGI("Gadget cannot be pulled down");
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
@@ -257,7 +261,7 @@ Status UsbGadget::setupFunctions(long functions,
     int i = 0;
 
     if (timeout == 0) {
-	    ALOGW("timeout not setup");
+        ALOGW("timeout not setup");
     }
     if (Status(addGenericAndroidFunctions(&monitorFfs, functions, &ffsEnabled, &i)) !=
         Status::SUCCESS)
@@ -270,7 +274,7 @@ Status UsbGadget::setupFunctions(long functions,
     }
 
     if ((functions & GadgetFunction::NCM) != 0) {
-        ALOGI("setCurrentUsbFunctions ncm");
+        PW_LOG_DEBUG("setCurrentUsbFunctions ncm");
         if (linkFunction("ncm.gs9", i++))
             return Status::ERROR;
     }
@@ -337,7 +341,7 @@ ScopedAStatus UsbGadget::setCurrentUsbFunctions(int64_t functions,
     std::string current_usb_power_operation_mode, current_usb_type;
     std::string usb_limit_sink_enable;
 
-    ALOGE("%s func: %" PRId64"", __func__, functions);
+    PW_LOG_DEBUG("%s func: %" PRId64"", __func__, functions);
 
 #if 0
     string accessoryCurrentLimitEnablePath, accessoryCurrentLimitPath, path;
@@ -361,7 +365,7 @@ ScopedAStatus UsbGadget::setCurrentUsbFunctions(int64_t functions,
         goto error;
     }
 
-    ALOGI("Returned from tearDown gadget");
+    PW_LOG_DEBUG("Returned from tearDown gadget");
 
     // Leave the gadget pulled down to give time for the host to sense disconnect.
     //usleep(kDisconnectWaitUs);
@@ -428,13 +432,13 @@ ScopedAStatus UsbGadget::setCurrentUsbFunctions(int64_t functions,
             ALOGI("unvote accessory limit current failed");
     }
 #endif
-    ALOGI("Usb Gadget setcurrent functions called successfully");
+    PW_LOG_DEBUG("Usb Gadget setcurrent functions called successfully");
     return ScopedAStatus::fromServiceSpecificErrorWithMessage(
                 -1, "Usb Gadget setcurrent functions called successfully");
 
 
 error:
-    ALOGI("Usb Gadget setcurrent functions failed");
+    ALOGE("Usb Gadget setcurrent functions failed");
     if (callback == NULL)
         return ScopedAStatus::fromServiceSpecificErrorWithMessage(
                 -1, "Usb Gadget setcurrent functions failed");
@@ -444,6 +448,23 @@ error:
     return ScopedAStatus::fromServiceSpecificErrorWithMessage(
                 -1, "Error while calling setCurrentUsbFunctionsCb");
 }
+
+binder_status_t UsbGadget::dump(int fd, const char **args, uint32_t argc) {
+    bool dbg = (argc == 1) && (std::string(args[0]) == "debug");
+
+    setDebug(dbg);
+    std::string buf(::android::base::StringPrintf(
+            "Usb Gadget aidl dump: UDC: %s\n"
+            "Current usb func: %" PRId64"\n", mUdcController.c_str(),
+            mCurrentUsbFunctions));
+
+    if (!::android::base::WriteStringToFd(buf, fd)) {
+        ALOGD("Failed to dump state to fd");
+    }
+    fsync(fd);
+    return STATUS_OK;
+}
+
 }  // namespace gadget
 }  // namespace usb
 }  // namespace hardware

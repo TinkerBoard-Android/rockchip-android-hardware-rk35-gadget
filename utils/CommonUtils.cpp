@@ -42,6 +42,15 @@ using ::std::chrono::microseconds;
 using ::std::chrono::steady_clock;
 using ::std::literals::chrono_literals::operator""ms;
 
+bool kDebug = false;
+
+void setDebug(bool dbg) {
+    kDebug = dbg;
+}
+bool isDebug() {
+    return kDebug;
+}
+
 int addEpollFd(const ::android::base::unique_fd &epfd, const ::android::base::unique_fd &fd) {
     struct epoll_event event;
     int ret;

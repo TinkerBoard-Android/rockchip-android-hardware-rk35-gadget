@@ -29,7 +29,6 @@ namespace gadget {
 constexpr int kBufferSize = 512;
 constexpr int kMaxFilePathLength = 256;
 constexpr int kEpollEvents = 10;
-constexpr bool kDebug = true;
 constexpr int kDisconnectWaitUs = 100000;
 constexpr int kPullUpDelay = 500000;
 constexpr int kShutdownMonitor = 100;
@@ -56,6 +55,9 @@ constexpr char kUvcEnabled[] = "ro.usb.uvc.enabled";
 #define FUNCTION_PATH CONFIG_PATH FUNCTION_NAME
 #define RNDIS_PATH FUNCTIONS_PATH "gsi.rndis"
 
+// Enable debug or not
+void setDebug(const bool dbg);
+bool isDebug();
 // Adds the given fd to the epollfd(epfd).
 int addEpollFd(const ::android::base::unique_fd &epfd, const ::android::base::unique_fd &fd);
 // Extracts vendor functions from the vendor init properties.

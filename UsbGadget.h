@@ -100,6 +100,8 @@ struct UsbGadget : public BnUsbGadget {
     ScopedAStatus getUsbSpeed(const shared_ptr<IUsbGadgetCallback> &callback,
 	    int64_t in_transactionId) override;
 
+    binder_status_t dump(int fd, const char **args, unsigned int numArgs) override;
+
   private:
     Status tearDownGadget();
     Status getUsbGadgetIrqPath();
