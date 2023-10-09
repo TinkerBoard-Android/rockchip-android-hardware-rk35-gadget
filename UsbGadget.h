@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,8 @@
 #include <string>
 #include <thread>
 
+#include <rkusb/UsbGadgetAidlCommon.h>
+
 namespace aidl {
 namespace android {
 namespace hardware {
@@ -58,12 +60,12 @@ using ::ndk::ScopedAStatus;
 using ::std::shared_ptr;
 using ::std::string;
 
+using ::aidl::android::hardware::usb::gadget::MonitorFfs;
+
 constexpr char kGadgetNameProp[] = "vendor.usb.controller";
 constexpr char kProcInterruptsPath[] = "/proc/interrupts";
 constexpr char kProcIrqPath[] = "/proc/irq/";
 constexpr char kSmpAffinityList[] = "/smp_affinity_list";
-
-constexpr int kDisconnectWaitUs = 100000;
 
 #define BIG_CORE "6"
 #define MEDIUM_CORE "4"
@@ -73,8 +75,6 @@ constexpr int kDisconnectWaitUs = 100000;
 
 #define CURRENT_USB_TYPE_PATH			POWER_SUPPLY_PATH	"usb_type"
 #define CURRENT_USB_POWER_OPERATION_MODE_PATH	USB_PORT0_PATH		"power_operation_mode"
-
-#define PULLUP_PATH "/config/usb_gadget/g1/UDC"
 
 struct UsbGadget : public BnUsbGadget {
     UsbGadget();

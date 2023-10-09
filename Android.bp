@@ -34,4 +34,7 @@ cc_binary {
         "libcutils",
         "libbinder_ndk",
     ],
+    static_libs: [
+        "librkusb-utils",
+    ]
 }

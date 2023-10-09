@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include <aidl/android/frameworks/stats/IStats.h>
 
@@ -37,12 +38,16 @@ namespace usb {
 namespace gadget {
 
 string enabledPath;
-constexpr char kHsi2cPath[] = "/sys/devices/platform/10d50000.hsi2c";
-constexpr char kI2CPath[] = "/sys/devices/platform/10d50000.hsi2c/i2c-";
-constexpr char kAccessoryLimitCurrent[] = "i2c-max77759tcpc/usb_limit_accessory_current";
-constexpr char kAccessoryLimitCurrentEnable[] = "i2c-max77759tcpc/usb_limit_accessory_enable";
+//constexpr char kHsi2cPath[] = "/sys/devices/platform/10d50000.hsi2c";
+//constexpr char kI2CPath[] = "/sys/devices/platform/10d50000.hsi2c/i2c-";
+//constexpr char kAccessoryLimitCurrent[] = "i2c-max77759tcpc/usb_limit_accessory_current";
+//constexpr char kAccessoryLimitCurrentEnable[] = "i2c-max77759tcpc/usb_limit_accessory_enable";
 
-UsbGadget::UsbGadget() : mGadgetIrqPath(""), mUdcController("") {
+static MonitorFfs monitorFfs("");
+
+UsbGadget::UsbGadget() : mGadgetIrqPath(""),
+    mUdcController(GetProperty(kGadgetNameProp, "fc400000.usb")) {
+    monitorFfs.setGadgetName(mUdcController.c_str());
 }
 
 Status UsbGadget::getUsbGadgetIrqPath() {
@@ -111,10 +116,8 @@ ScopedAStatus UsbGadget::getUsbSpeed(const shared_ptr<IUsbGadgetCallback> &callb
 	int64_t in_transactionId) {
     std::string speed_path;
     std::string current_speed;
-    if (mUdcController.empty()) {
-        mUdcController = GetProperty(kGadgetNameProp, "fc400000.usb");
-    }
     speed_path = "/sys/class/udc/" + mUdcController + "/current_speed";
+
     if (ReadFileToString(speed_path, &current_speed)) {
         current_speed = Trim(current_speed);
         ALOGI("current USB speed is %s", current_speed.c_str());
@@ -148,7 +151,83 @@ ScopedAStatus UsbGadget::getUsbSpeed(const shared_ptr<IUsbGadgetCallback> &callb
 }
 
 Status UsbGadget::tearDownGadget() {
+    if (Status(resetGadget()) != Status::SUCCESS) {
+        return Status::ERROR;
+    }
+
+    if (monitorFfs.isMonitorRunning()) {
+        monitorFfs.reset();
+    } else {
+        ALOGI("monitorFfs not running");
+    }
     return Status::SUCCESS;
+}
+
+#define ROCKCHIP_VID "0x2207"
+#define GOOGLE_VID "0x18d1"
+
+Status validateAndSetVidPid(uint64_t functions) {
+    Status ret = Status::SUCCESS;
+    switch (functions) {
+        case static_cast<uint64_t>(GadgetFunction::MTP):
+            ret = setVidPid(ROCKCHIP_VID, "0x0007");
+            break;
+        case GadgetFunction::ADB | GadgetFunction::MTP:
+            ret = setVidPid(ROCKCHIP_VID, "0x0017");
+            break;
+        case static_cast<uint64_t>(GadgetFunction::RNDIS):
+            ret = setVidPid(ROCKCHIP_VID, "0x0003");
+            break;
+        case GadgetFunction::ADB | GadgetFunction::RNDIS:
+            ret = setVidPid(ROCKCHIP_VID, "0x0013");
+            break;
+        case static_cast<uint64_t>(GadgetFunction::PTP):
+            ret = setVidPid(ROCKCHIP_VID, "0x0008");
+            break;
+        case GadgetFunction::ADB | GadgetFunction::PTP:
+            ret = setVidPid(ROCKCHIP_VID, "0x0018");
+            break;
+        case static_cast<uint64_t>(GadgetFunction::ADB):
+            ret = setVidPid(ROCKCHIP_VID, "0x0006");
+            break;
+        case static_cast<uint64_t>(GadgetFunction::MIDI):
+            ret = setVidPid(ROCKCHIP_VID, "0x0004");
+            break;
+        case GadgetFunction::ADB | GadgetFunction::MIDI:
+            ret = setVidPid(ROCKCHIP_VID, "0x0014");
+            break;
+        case static_cast<uint64_t>(GadgetFunction::ACCESSORY):
+            ret = setVidPid(GOOGLE_VID, "0x2d00");
+            break;
+        case GadgetFunction::ADB | GadgetFunction::ACCESSORY:
+            ret = setVidPid(GOOGLE_VID, "0x2d01");
+            break;
+        case static_cast<uint64_t>(GadgetFunction::AUDIO_SOURCE):
+            ret = setVidPid(GOOGLE_VID, "0x2d02");
+            break;
+        case GadgetFunction::ADB | GadgetFunction::AUDIO_SOURCE:
+            ret = setVidPid(GOOGLE_VID, "0x2d02");
+            break;
+        case GadgetFunction::ACCESSORY | GadgetFunction::AUDIO_SOURCE:
+            ret = setVidPid(GOOGLE_VID, "0x2d04");
+            break;
+        case GadgetFunction::ADB | GadgetFunction::ACCESSORY | GadgetFunction::AUDIO_SOURCE:
+            ret = setVidPid(GOOGLE_VID, "0x2d05");
+            break;
+        case static_cast<uint64_t>(GadgetFunction::NCM):
+            ret = setVidPid(ROCKCHIP_VID, "0x000A");
+            break;
+        case GadgetFunction::ADB | GadgetFunction::NCM:
+            ret = setVidPid(ROCKCHIP_VID, "0x001A");
+            break;
+        default:
+            ALOGE("Combination not supported");
+            ret = Status::CONFIGURATION_NOT_SUPPORTED;
+    }
+    if (ret == Status::ERROR) {
+        ALOGE("Failed to setVidPid: %" PRId64"", functions);
+    }
+    return ret;
 }
 
 ScopedAStatus UsbGadget::reset(const shared_ptr<IUsbGadgetCallback> &callback,
@@ -161,9 +240,6 @@ ScopedAStatus UsbGadget::reset(const shared_ptr<IUsbGadgetCallback> &callback,
 
     usleep(kDisconnectWaitUs);
 
-    if (mUdcController.empty()) {
-        mUdcController = GetProperty(kGadgetNameProp, "fc400000.usb");
-    }
     if (!WriteStringToFile(mUdcController, PULLUP_PATH)) {
         ALOGI("Gadget cannot be pulled up");
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
@@ -178,29 +254,57 @@ Status UsbGadget::setupFunctions(long functions,
 	const shared_ptr<IUsbGadgetCallback> &callback, uint64_t timeout,
 	int64_t in_transactionId) {
     bool ffsEnabled = false;
+    int i = 0;
+
     if (timeout == 0) {
-	ALOGI("timeout not setup");
+	    ALOGW("timeout not setup");
     }
+    if (Status(addGenericAndroidFunctions(&monitorFfs, functions, &ffsEnabled, &i)) !=
+        Status::SUCCESS)
+        return Status::ERROR;
 
     if ((functions & GadgetFunction::ADB) != 0) {
         ffsEnabled = true;
+        if (Status(addAdb(&monitorFfs, &i)) != Status::SUCCESS)
+            return Status::ERROR;
     }
 
     if ((functions & GadgetFunction::NCM) != 0) {
         ALOGI("setCurrentUsbFunctions ncm");
+        if (linkFunction("ncm.gs9", i++))
+            return Status::ERROR;
     }
 
     // Pull up the gadget right away when there are no ffs functions.
     if (!ffsEnabled) {
+        if (!WriteStringToFile(mUdcController, PULLUP_PATH))
+            return Status::ERROR;
         mCurrentUsbFunctionsApplied = true;
         if (callback)
             callback->setCurrentUsbFunctionsCb(functions, Status::SUCCESS, in_transactionId);
         return Status::SUCCESS;
     }
 
+    monitorFfs.registerFunctionsAppliedCallback(&currentFunctionsAppliedCallback, this);
+    // Monitors the ffs paths to pull up the gadget when descriptors are written.
+    // Also takes of the pulling up the gadget again if the userspace process
+    // dies and restarts.
+    monitorFfs.startMonitor();
+
+    // Callback to frameworks, let them know we are set functions successfully.
+    if (callback) {
+        bool pullup = monitorFfs.waitForPullUp(timeout);
+        ScopedAStatus ret = callback->setCurrentUsbFunctionsCb(
+            functions, pullup ? Status::SUCCESS : Status::ERROR, in_transactionId);
+        if (!ret.isOk()) {
+            ALOGE("setCurrentUsbFunctionsCb error %s", ret.getDescription().c_str());
+            return Status::ERROR;
+        }
+    }
     return Status::SUCCESS;
 }
 
+#if 0
 Status getI2cBusHelper(string *name) {
     DIR *dp;
 
@@ -223,6 +327,7 @@ Status getI2cBusHelper(string *name) {
     ALOGE("Failed to open %s", kHsi2cPath);
     return Status::ERROR;
 }
+#endif
 
 ScopedAStatus UsbGadget::setCurrentUsbFunctions(int64_t functions,
                                                const shared_ptr<IUsbGadgetCallback> &callback,
@@ -232,11 +337,15 @@ ScopedAStatus UsbGadget::setCurrentUsbFunctions(int64_t functions,
     std::string current_usb_power_operation_mode, current_usb_type;
     std::string usb_limit_sink_enable;
 
-    string accessoryCurrentLimitEnablePath, accessoryCurrentLimitPath, path;
+    ALOGE("%s func: %" PRId64"", __func__, functions);
 
+#if 0
+    string accessoryCurrentLimitEnablePath, accessoryCurrentLimitPath, path;
+#endif
     mCurrentUsbFunctions = functions;
     mCurrentUsbFunctionsApplied = false;
 
+#if 0
     getI2cBusHelper(&path);
     accessoryCurrentLimitPath = kI2CPath + path + "/" + kAccessoryLimitCurrent;
     accessoryCurrentLimitEnablePath = kI2CPath + path + "/" + kAccessoryLimitCurrentEnable;
@@ -244,6 +353,7 @@ ScopedAStatus UsbGadget::setCurrentUsbFunctions(int64_t functions,
     // Get the gadget IRQ number before tearDownGadget()
     if (mGadgetIrqPath.empty())
         getUsbGadgetIrqPath();
+#endif
 
     // Unlink the gadget and stop the monitor if running.
     Status status = tearDownGadget();
@@ -265,6 +375,10 @@ ScopedAStatus UsbGadget::setCurrentUsbFunctions(int64_t functions,
             ALOGE("Error while calling setCurrentUsbFunctionsCb %s", ret.getDescription().c_str());
         return ScopedAStatus::fromServiceSpecificErrorWithMessage(
                 -1, "Error while calling setCurrentUsbFunctionsCb");
+    }
+    status = validateAndSetVidPid(functions);
+    if (status != Status::SUCCESS) {
+        goto error;
     }
 
     status = setupFunctions(functions, callback, timeoutMs, in_transactionId);
@@ -297,7 +411,7 @@ ScopedAStatus UsbGadget::setCurrentUsbFunctions(int64_t functions,
 
     if (ReadFileToString(CURRENT_USB_POWER_OPERATION_MODE_PATH, &current_usb_power_operation_mode))
         current_usb_power_operation_mode = Trim(current_usb_power_operation_mode);
-
+#if 0
     if (functions & GadgetFunction::ACCESSORY &&
         current_usb_type == "Unknown SDP [CDP] DCP" &&
         (current_usb_power_operation_mode == "default" ||
@@ -313,7 +427,7 @@ ScopedAStatus UsbGadget::setCurrentUsbFunctions(int64_t functions,
         if (!WriteStringToFile("0", accessoryCurrentLimitEnablePath))
             ALOGI("unvote accessory limit current failed");
     }
-
+#endif
     ALOGI("Usb Gadget setcurrent functions called successfully");
     return ScopedAStatus::fromServiceSpecificErrorWithMessage(
                 -1, "Usb Gadget setcurrent functions called successfully");
