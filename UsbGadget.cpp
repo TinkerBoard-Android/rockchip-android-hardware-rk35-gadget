@@ -260,7 +260,7 @@ ScopedAStatus UsbGadget::reset(const shared_ptr<IUsbGadgetCallback> &callback,
     return ScopedAStatus::ok();
 }
 
-Status UsbGadget::setupFunctions(long functions,
+Status UsbGadget::setupFunctions(int64_t functions,
 	const shared_ptr<IUsbGadgetCallback> &callback, uint64_t timeout,
 	int64_t in_transactionId) {
     bool ffsEnabled = false;

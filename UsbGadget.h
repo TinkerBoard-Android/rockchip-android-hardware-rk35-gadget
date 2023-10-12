@@ -83,7 +83,7 @@ struct UsbGadget : public BnUsbGadget {
     std::mutex mLockSetCurrentFunction;
     std::string mGadgetIrqPath;
     std::string mUdcController;
-    long mCurrentUsbFunctions;
+    int64_t mCurrentUsbFunctions;
     bool mCurrentUsbFunctionsApplied;
     UsbSpeed mUsbSpeed;
 
@@ -105,7 +105,7 @@ struct UsbGadget : public BnUsbGadget {
   private:
     Status tearDownGadget();
     Status getUsbGadgetIrqPath();
-    Status setupFunctions(long functions, const shared_ptr<IUsbGadgetCallback> &callback,
+    Status setupFunctions(int64_t functions, const shared_ptr<IUsbGadgetCallback> &callback,
             uint64_t timeout, int64_t in_transactionId);
 };
 
