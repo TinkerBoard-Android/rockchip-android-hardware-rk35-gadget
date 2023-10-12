@@ -224,6 +224,12 @@ Status validateAndSetVidPid(uint64_t functions) {
         case GadgetFunction::ADB | GadgetFunction::NCM:
             ret = setVidPid(ROCKCHIP_VID, "0x001A");
             break;
+        case static_cast<uint64_t>(GadgetFunction::UVC):
+            ret = setVidPid(ROCKCHIP_VID, "0x0005");
+            break;
+        case GadgetFunction::ADB | GadgetFunction::UVC:
+            ret = setVidPid(ROCKCHIP_VID, "0x0015");
+            break;
         default:
             ALOGE("Combination not supported");
             ret = Status::CONFIGURATION_NOT_SUPPORTED;
