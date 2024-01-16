@@ -62,7 +62,7 @@ using ::std::string;
 
 using ::aidl::android::hardware::usb::gadget::MonitorFfs;
 
-constexpr char kGadgetNameProp[] = "vendor.usb.controller";
+constexpr char kGadgetNameProp[] = "sys.usb.controller";
 constexpr char kProcInterruptsPath[] = "/proc/interrupts";
 constexpr char kProcIrqPath[] = "/proc/irq/";
 constexpr char kSmpAffinityList[] = "/smp_affinity_list";
