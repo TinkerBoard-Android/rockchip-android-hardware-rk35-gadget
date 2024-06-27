@@ -169,30 +169,31 @@ Status UsbGadget::tearDownGadget() {
 
 #define ROCKCHIP_VID "0x2207"
 #define GOOGLE_VID "0x18d1"
+#define ASUS_VID "0x0b05"
 
 Status validateAndSetVidPid(uint64_t functions) {
     Status ret = Status::SUCCESS;
     switch (functions) {
         case static_cast<uint64_t>(GadgetFunction::MTP):
-            ret = setVidPid(ROCKCHIP_VID, "0x0007");
+            ret = setVidPid(ASUS_VID, "0x7772");
             break;
         case GadgetFunction::ADB | GadgetFunction::MTP:
-            ret = setVidPid(ROCKCHIP_VID, "0x0017");
+            ret = setVidPid(ASUS_VID, "0x7773");
             break;
         case static_cast<uint64_t>(GadgetFunction::RNDIS):
-            ret = setVidPid(ROCKCHIP_VID, "0x0003");
+            ret = setVidPid(ASUS_VID, "0x7774");
             break;
         case GadgetFunction::ADB | GadgetFunction::RNDIS:
-            ret = setVidPid(ROCKCHIP_VID, "0x0013");
+            ret = setVidPid(ASUS_VID, "0x7775");
             break;
         case static_cast<uint64_t>(GadgetFunction::PTP):
-            ret = setVidPid(ROCKCHIP_VID, "0x0008");
+            ret = setVidPid(ASUS_VID, "0x7776");
             break;
         case GadgetFunction::ADB | GadgetFunction::PTP:
-            ret = setVidPid(ROCKCHIP_VID, "0x0018");
+            ret = setVidPid(ASUS_VID, "0x7777");
             break;
         case static_cast<uint64_t>(GadgetFunction::ADB):
-            ret = setVidPid(ROCKCHIP_VID, "0x0006");
+            ret = setVidPid(ASUS_VID, "0x7770");
             break;
         case static_cast<uint64_t>(GadgetFunction::MIDI):
             ret = setVidPid(ROCKCHIP_VID, "0x0004");
